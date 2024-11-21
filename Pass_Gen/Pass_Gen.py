@@ -5,6 +5,7 @@ from typing import Generator
 from tqdm import tqdm  # pip install tqdm (если не установлена)
 
 
+# Генератор паролей заданной длины
 def generate_pass(length: int = 6) -> Generator[str, None, None]:
     """Генерирует бесконечный генератор паролей заданной длины."""
     special_chars = '!@#$%^&*()_+-=[]{}|;:,.<>?/~'
@@ -15,6 +16,7 @@ def generate_pass(length: int = 6) -> Generator[str, None, None]:
         password = ''.join(random.choice(characters) for _ in range(length))
         yield password
 
+# Записывает пароли в файл с отображением прогресса + обработка ошибки записи
 def to_file(passwords: Generator[str, None, None], filename: str, count: int) -> None:
     """Записывает заданное количество паролей в файл с отображением прогресса."""
     try:
@@ -24,6 +26,7 @@ def to_file(passwords: Generator[str, None, None], filename: str, count: int) ->
     except Exception as e:
         print(f"Ошибка при записи в файл: {e}")
 
+# Проверка на корректное число
 def get_positive_integer(prompt: str) -> int:
     """Запрашивает у пользователя ввод положительного целого числа."""
     while True:
