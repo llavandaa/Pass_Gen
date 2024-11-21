@@ -1,64 +1,86 @@
-import random
+import secrets
 import string
 import os
-from typing import Generator
-from tqdm import tqdm  # pip install tqdm (если не установлена)
-
+import tkinter as tk
+from tkinter import messagebox, filedialog
+from typing import List
 
 # Генератор паролей заданной длины
-def generate_pass(length: int = 6) -> Generator[str, None, None]:
+def generate_pass(length: int, count: int) -> List[str]:
     special_chars = '!@#$%^&*()_+-=[]{}|;:,.<>?/~'
     characters = string.ascii_letters + string.digits + special_chars
+    # Генерация списка паролей
+    passwords = [''.join(secrets.choice(characters) for _ in range(length)) for _ in range(count)]
+    return passwords
 
-    while True:
-        # Генерация пароля заданной длины
-        password = ''.join(random.choice(characters) for _ in range(length))
-        yield password
-
-# Записывает пароли в файл с отображением прогресса + обработка ошибки записи
-def to_file(passwords: Generator[str, None, None], filename: str, count: int) -> None:
+# Записывает пароли в файл с обработкой ошибки записи
+def to_file(passwords: List[str], filename: str) -> None:
     try:
         with open(filename, 'w', encoding='utf-8') as file:
-            for _ in tqdm(range(count), desc="Генерация паролей", unit="пароль"):
-                file.write(next(passwords) + '\n')
+            file.write('\n'.join(passwords))
+        messagebox.showinfo("Успех", f'{len(passwords)} сгенерированных паролей записано в файл {filename}.')
     except Exception as e:
-        print(f"Ошибка при записи в файл: {e}")
+        messagebox.showerror("Ошибка", f"Ошибка при записи в файл: {e}")
 
-# Проверка на корректное число
-def get_positive_integer(prompt: str) -> int:
-    while True:
-        try:
-            value = int(input(prompt))
-            if value <= 0:
-                print("Число должно быть положительным.")
-            else:
-                return value
-        except ValueError:
-            print("Пожалуйста, введите корректное целое число.")
+# Функция для обработки нажатия кнопки "Сгенерировать"
+def generate_passwords():
+    try:
+        password_length = int(length_entry.get())
+        number_of_passwords = int(count_entry.get())
+        filename = file_path.get()
 
-def main():
-    # Получение параметров генерации паролей от пользователя
-    password_length = get_positive_integer('Введите необходимую длину пароля: ')
-    number_of_passwords = get_positive_integer('Введите количество паролей для генерации: ')
-    
-    # Запрос пути к файлу для сохранения паролей
-    filename = input('Введите путь к файлу для сохранения паролей (например, C:\\path\\to\\file\\pass.txt): ')
+        # Проверка на положительные значения
+        if password_length <= 0 or number_of_passwords <= 0:
+            messagebox.showwarning("Предупреждение", "Длина пароля и количество паролей должны быть положительными числами.")
+            return
 
-    # Проверка существования директории
-    directory = os.path.dirname(filename)
-    if not os.path.exists(directory) and directory != '':
-        print("Указанная директория не существует.")
-        return
+        # Проверка существования директории
+        directory = os.path.dirname(filename)
+        if directory and not os.path.exists(directory):
+            messagebox.showwarning("Предупреждение", "Указанная директория не существует.")
+            return
 
-    if password_length <= 0 or number_of_passwords <= 0:
-        print("Длина пароля и количество паролей должны быть положительными числами.")
-        return
+        # Генерация и запись паролей в файл
+        passwords = generate_pass(password_length, number_of_passwords)
+        to_file(passwords, filename)
 
-    # Генерация и запись паролей в файл
-    passwords = generate_pass(password_length)
-    to_file(passwords, filename, number_of_passwords)
+        # Очистка полей ввода после успешной генерации
+        length_entry.delete(0, tk.END)
+        count_entry.delete(0, tk.END)
+        file_path.set('')
 
-    print(f'{number_of_passwords} сгенерированных паролей записано в файл {filename}.')
+    except ValueError:
+        messagebox.showerror("Ошибка", "Пожалуйста, введите корректные целые числа.")
 
-if __name__ == "__main__":
-    main()
+# Функция для выбора файла сохранения
+def select_file():
+    filename = filedialog.asksaveasfilename(defaultextension=".txt",
+                                              filetypes=[("Text files", "*.txt"), ("All files", "*.*")])
+    if filename:
+        file_path.set(filename)
+
+# Создание основного окна приложения
+root = tk.Tk()
+root.title("Passwd Generator")  # Заголовок окна
+
+# Переменные для хранения данных ввода
+file_path = tk.StringVar()
+
+# Создание интерфейса
+tk.Label(root, text="Длина пароля:").grid(row=0, column=0, padx=10, pady=10)
+length_entry = tk.Entry(root)
+length_entry.grid(row=0, column=1, padx=10, pady=10)
+
+tk.Label(root, text="Количество паролей:").grid(row=1, column=0, padx=10, pady=10)
+count_entry = tk.Entry(root)
+count_entry.grid(row=1, column=1, padx=10, pady=10)
+
+tk.Label(root, text="Путь к файлу:").grid(row=2, column=0, padx=10, pady=10)
+file_entry = tk.Entry(root, textvariable=file_path)
+file_entry.grid(row=2, column=1, padx=10, pady=10)
+
+tk.Button(root, text="Выбрать файл", command=select_file).grid(row=2, column=2, padx=10, pady=10)
+tk.Button(root, text="Generate!", command=generate_passwords).grid(row=3, columnspan=3, padx=10, pady=20)
+
+# Запуск основного цикла приложения
+root.mainloop()
